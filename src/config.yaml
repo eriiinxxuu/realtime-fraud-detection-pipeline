@@ -1,0 +1,36 @@
+mlflow: 
+  experiment_name: "fraud_detection_train"
+  registered_model_name: "fraud_detection_lightgbm"
+  tracking_url: "http://mlflow-server:5500"
+  artifact_location: "s3://mlflow/fraud_detection_lightgbm"
+  s3_endpoint_url: "http://minio:9000"
+  bucket: "mlflow"
+
+kafka:
+  topic: "transactions"
+  output_topic: "fraud_prediction"
+  security_protocol: "SASL_SSL"
+  sasl_mechanism: "PLAIN"
+
+model:
+  test_size: 0.2
+  seed: 42
+  params:
+    n_estimators: 500
+    max_depth: 8
+    num_leaves: 63
+    seed: 42
+    learning_rate: 0.05
+    min_child_samples: 100
+    reg_alpha: 0.1
+    reg_lambda: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+  path: '/app/models/fraud_detection_model.pkl'
+
+
+spark:
+  app_name: "FraudDetectionInference"
+  pacakges: "org.mlflow:mlflow-spark:2.6.0,com.google.guava:guava:30.1.1-jre,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.4,org.apache.hadoop:hadoop-aws:3.3.0,com.amazonaws:aws-java-sdk:1.11.469"
+  shuffle_partition: 200
+  checkpoint_location: 'checkpoints'

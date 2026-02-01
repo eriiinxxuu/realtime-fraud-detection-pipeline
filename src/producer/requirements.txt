@@ -1,0 +1,7 @@
+python-dotenv
+confluent_kafka
+faker
+jsonschema
+geonamescache
+geopy
+timezonefinder

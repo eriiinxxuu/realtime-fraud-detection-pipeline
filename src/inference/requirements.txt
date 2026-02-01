@@ -1,0 +1,12 @@
+mlflow
+pyspark
+python-dotenv
+grpcio>=1.48.0
+pyarrow
+pandas
+numpy
+scikit-learn
+boto3
+pyyaml
+imblearn
+lightgbm
