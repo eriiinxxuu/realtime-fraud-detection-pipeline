@@ -1,0 +1,54 @@
+artifact_path: s3://mlflow/1/models/m-4ba8ffd33dec46ffa7152d72b356dca0/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.12
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.9.0
+model_id: m-4ba8ffd33dec46ffa7152d72b356dca0
+model_size_bytes: 10778034
+model_uuid: m-4ba8ffd33dec46ffa7152d72b356dca0
+prompts: null
+run_id: f32a4c95e4dc48f29569ec226cf021db
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "amount", "required": true}, {"type": "string",
+    "name": "currency", "required": true}, {"type": "string", "name": "merchant",
+    "required": true}, {"type": "string", "name": "location", "required": true}, {"type":
+    "string", "name": "device_id", "required": true}, {"type": "string", "name": "mcc",
+    "required": true}, {"type": "long", "name": "account_age_days", "required": true},
+    {"type": "boolean", "name": "is_frequent_traveler", "required": true}, {"type":
+    "double", "name": "avg_transaction", "required": true}, {"type": "long", "name":
+    "signal_amount_anomaly_3x", "required": true}, {"type": "long", "name": "signal_amount_anomaly_5x",
+    "required": true}, {"type": "long", "name": "signal_geo_anomaly", "required":
+    true}, {"type": "long", "name": "signal_high_risk_merchant", "required": true},
+    {"type": "long", "name": "signal_velocity_10min_high", "required": true}, {"type":
+    "long", "name": "signal_velocity_1h_high", "required": true}, {"type": "long",
+    "name": "signal_device_change", "required": true}, {"type": "long", "name": "signal_night_transaction",
+    "required": true}, {"type": "long", "name": "signal_new_account", "required":
+    true}, {"type": "long", "name": "signal_high_risk_mcc", "required": true}, {"type":
+    "integer", "name": "hour", "required": true}, {"type": "integer", "name": "day_of_week",
+    "required": true}, {"type": "long", "name": "is_weekend", "required": true}, {"type":
+    "long", "name": "is_night", "required": true}, {"type": "double", "name": "amount_ratio",
+    "required": true}, {"type": "long", "name": "is_home_country", "required": true},
+    {"type": "long", "name": "is_small_amount", "required": true}, {"type": "long",
+    "name": "is_round_amount", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-01-31 07:50:42.640365'
