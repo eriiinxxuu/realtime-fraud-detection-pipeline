@@ -20,3 +20,8 @@ output "airflow_db_password_secret_arn" {
 output "mlflow_db_password_secret_arn" {
   value = aws_secretsmanager_secret.mlflow_db_password.arn
 }
+
+output "master_password_secret_arn" {
+  description = "Secrets Manager ARN for RDS master password"
+  value       = aws_secretsmanager_secret.rds_master.arn
+}
