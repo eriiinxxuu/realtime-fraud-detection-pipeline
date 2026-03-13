@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 default_args = {
     'owner': 'Erin_Xu_FraudDetection',
     'depends_on_past': False,
-    'start_time': datetime(2026, 1, 28),
+    'start_date': datetime(2026, 3, 13),
     'email_on_failure': False,
     'execution_timeout': timedelta(minutes=180),
     'retries': 1,
@@ -45,7 +45,7 @@ with DAG(
         bash_command = '''
         echo "Validating Environment..."
         test -f /app/config.yaml &&
-        test -f /app/.env &&
+        # test -f /app/.env &&
         echo "Environment is valid!" 
         '''
     )

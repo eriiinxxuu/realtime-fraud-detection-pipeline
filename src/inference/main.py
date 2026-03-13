@@ -124,10 +124,10 @@ class FraudDetectionInference:
         kafka_sasl_mechanism = self.config['kafka']['sasl_mechanism']
         kafka_username = os.getenv("KAFKA_USERNAME")
         kafka_password = os.getenv("KAFKA_PASSWORD")
-        kafka_sasl_jaas_config = (
-            f'org.apache.kafka.common.security.plain.PlainLoginModule required '
-            f'username="{kafka_username}" password="{kafka_password}";'
-        )
+        # kafka_sasl_jaas_config = (
+        #     f'org.apache.kafka.common.security.plain.PlainLoginModule required '
+        #     f'username="{kafka_username}" password="{kafka_password}";'
+        # )
 
         self.bootstrap_servers = kafka_bootstrap_server
         self.topic = kafka_topic
@@ -135,19 +135,43 @@ class FraudDetectionInference:
         self.sasl_mechanism = kafka_sasl_mechanism
         self.username = kafka_username
         self.password = kafka_password
-        self.sasl_jaa_config = kafka_sasl_jaas_config
+        # self.sasl_jaa_config = kafka_sasl_jaas_config
 
-        df = (self.spark.readStream
+        kafka_options = {
+        'kafka.bootstrap.servers': kafka_bootstrap_server,
+        'subscribe': kafka_topic,
+        'startingOffsets': 'latest',
+        'kafka.security.protocol': kafka_security_protocol,
+    }
+
+
+        # df = (self.spark.readStream
               
-              .format('kafka')
-              .option('kafka.bootstrap.servers', kafka_bootstrap_server)
-              .option('subscribe', kafka_topic)
-              .option('startingOffsets', 'latest')
-              .option("kafka.security.protocol", kafka_security_protocol)
-              .option("kafka.sasl.mechanism", kafka_sasl_mechanism)
-              .option("kafka.sasl.jaas.config", kafka_sasl_jaas_config)
-              .load()
-        )
+        #       .format('kafka')
+        #       .option('kafka.bootstrap.servers', kafka_bootstrap_server)
+        #       .option('subscribe', kafka_topic)
+        #       .option('startingOffsets', 'latest')
+        #       .option("kafka.security.protocol", kafka_security_protocol)
+        #       .option("kafka.sasl.mechanism", kafka_sasl_mechanism)
+        #       .option("kafka.sasl.jaas.config", kafka_sasl_jaas_config)
+        #       .load()
+        # )
+        # Only add SASL config if needed
+        if kafka_sasl_mechanism:
+            kafka_sasl_jaas_config = (
+                f'org.apache.kafka.common.security.plain.PlainLoginModule required '
+                f'username="{kafka_username}" password="{kafka_password}";'
+                )
+            kafka_options['kafka.sasl.mechanism'] = kafka_sasl_mechanism
+            kafka_options['kafka.sasl.jaas.config'] = kafka_sasl_jaas_config
+            self.sasl_jaa_config = kafka_sasl_jaas_config
+        else:
+            self.sasl_jaa_config = None
+
+        df = self.spark.readStream.format('kafka')
+        for key, value in kafka_options.items():
+            df = df.option(key, value)
+        df = df.load()
 
         json_schema = StructType([
 
@@ -248,18 +272,34 @@ class FraudDetectionInference:
         "to_json(struct(*)) AS value"
         )
 
-        query = (
-        output_df.writeStream
-        .format("kafka")
-        .option('kafka.bootstrap.servers', self.bootstrap_servers)
-        .option('topic', 'fraud_predictions_output')
-        .option('kafka.security.protocol', self.security_protocol)
-        .option('kafka.sasl.mechanism', self.sasl_mechanism)
-        .option("kafka.sasl.jaas.config", self.sasl_jaa_config)
-        .option('checkpointLocation', 'checkpoints/checkpoint')
-        .outputMode('append')
-        .start()
-    )
+    #     query = (
+    #     output_df.writeStream
+    #     .format("kafka")
+    #     .option('kafka.bootstrap.servers', self.bootstrap_servers)
+    #     .option('topic', 'fraud_predictions_output')
+    #     .option('kafka.security.protocol', self.security_protocol)
+    #     .option('kafka.sasl.mechanism', self.sasl_mechanism)
+    #     .option("kafka.sasl.jaas.config", self.sasl_jaa_config)
+    #     .option('checkpointLocation', 'checkpoints/checkpoint')
+    #     .outputMode('append')
+    #     .start()
+    # )
+    #     query.awaitTermination()
+        write_options = {
+        'kafka.bootstrap.servers': self.bootstrap_servers,
+        'topic': 'fraud_predictions_output',
+        'kafka.security.protocol': self.security_protocol,
+        'checkpointLocation': 'checkpoints/checkpoint',
+    }
+
+        if self.sasl_jaa_config:
+            write_options['kafka.sasl.mechanism'] = self.sasl_mechanism
+            write_options['kafka.sasl.jaas.config'] = self.sasl_jaa_config
+
+        query = output_df.writeStream.format('kafka')
+        for key, value in write_options.items():
+            query = query.option(key, value)
+        query = query.outputMode('append').start()
         query.awaitTermination()
 
 

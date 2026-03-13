@@ -1,0 +1,53 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: airflow
+            dockerfile: ./src/airflow/Dockerfile
+          - name: mlflow
+            dockerfile: ./src/mlflow/Dockerfile
+          - name: producer
+            dockerfile: ./src/producer/Dockerfile
+          - name: inference
+            dockerfile: ./src/inference/Dockerfile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push ${{ matrix.service.name }}
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -f ${{ matrix.service.dockerfile }} \
+            -t $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:latest \
+            ./src
+          docker push $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:latest

@@ -20,9 +20,11 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 
-COPY ./requirements.txt /app/requirements.txt
+COPY producer/requirements.txt /app/requirements.txt
+COPY producer/main.py /app/main.py
+COPY config.yaml /app/config.yaml
 # install python dependencies to image
 RUN pip install -r /app/requirements.txt
 
-COPY . .
+
 ENTRYPOINT [ "python3", "main.py" ]

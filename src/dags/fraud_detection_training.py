@@ -36,10 +36,14 @@ from mlflow.models.signature import infer_signature
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(module)s - %(message)s',
     level=logging.INFO,
+    # handlers= [
+    #     logging.FileHandler('./fraud_detection_model.log'),
+    #     logging.StreamHandler()
+    # ]
     handlers= [
-        logging.FileHandler('./fraud_detection_model.log'),
-        logging.StreamHandler()
+    logging.StreamHandler()  
     ]
+
 )
 
 logger = logging.getLogger(__name__)
@@ -47,22 +51,26 @@ logger = logging.getLogger(__name__)
 
 
 class FraudDetectionTraining:
-    def __init__(self, config_path='/app/config.yaml'):
+    def __init__(self, config_path='/opt/airflow/dags/config.yaml'):
         os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
         os.environ['GIT_PYTHON_GIT_EXECUTABLE'] = '/usr/bin/git'
 
         load_dotenv(dotenv_path="/app/.env")
         self.config = self._load_config(config_path)
 
-        os.environ.update({
-            'AWS_ACCESS_KEY_ID': os.getenv('AWS_ACCESS_KEY_ID'),
-            'AWS_SECRET_ACCESS_KEY': os.getenv('AWS_SECRET_ACCESS_KEY'),
-            'AWS_S3_ENDPOINT_URL': self.config['mlflow']['s3_endpoint_url']
-        })
+        # os.environ.update({
+        #     'AWS_ACCESS_KEY_ID': os.getenv('AWS_ACCESS_KEY_ID'),
+        #     'AWS_SECRET_ACCESS_KEY': os.getenv('AWS_SECRET_ACCESS_KEY'),
+        #     'AWS_S3_ENDPOINT_URL': self.config['mlflow']['s3_endpoint_url']
+        # })
+
+        s3_endpoint_url = self.config['mlflow'].get('s3_endpoint_url')
+        if s3_endpoint_url:
+            os.environ['AWS_S3_ENDPOINT_URL'] = s3_endpoint_url
 
 
         self._validate_environment()
-        self._check_minio_connection()
+        # self._check_minio_connection()
 
         mlflow.set_tracking_uri(self.config['mlflow']['tracking_url'])
         mlflow.set_experiment(self.config['mlflow']['experiment_name'])
@@ -82,33 +90,33 @@ class FraudDetectionTraining:
             raise e
         
     def _validate_environment(self):
-        required_vars = ['KAFKA_BOOTSTRAP_SERVERS', 'KAFKA_USERNAME', 'KAFKA_PASSWORD']
+        required_vars = ['KAFKA_BOOTSTRAP_SERVERS']
         missing = [var for var in required_vars if not os.getenv(var)]
         if missing:
             raise ValueError(f'Missing required environment variables: {missing}')
         
 
-    def _check_minio_connection(self):
-        try:
-            s3 = boto3.client(
-                's3',
-                endpoint_url = self.config['mlflow']['s3_endpoint_url'],
-                aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key =  os.getenv('AWS_SECRET_ACCESS_KEY')
-            )
+    # def _check_minio_connection(self):
+    #     try:
+    #         s3 = boto3.client(
+    #             's3',
+    #             endpoint_url = self.config['mlflow']['s3_endpoint_url'],
+    #             aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
+    #             aws_secret_access_key =  os.getenv('AWS_SECRET_ACCESS_KEY')
+    #         )
 
-            buckets = s3.list_buckets()
-            bucket_names = [b['Name'] for b in buckets.get('Buckets', [])]
-            logger.info('MinIO connection verified. Buckets: %s', bucket_names)
+    #         buckets = s3.list_buckets()
+    #         bucket_names = [b['Name'] for b in buckets.get('Buckets', [])]
+    #         logger.info('MinIO connection verified. Buckets: %s', bucket_names)
 
-            mlflow_bucket = self.config['mlflow'].get('bucket', 'mlflow')
+    #         mlflow_bucket = self.config['mlflow'].get('bucket', 'mlflow')
 
-            if mlflow_bucket not in bucket_names:
-                s3.create_bucket(Bucket=mlflow_bucket)
-                logger.info("Created missing MLFlow bucket %s", mlflow_bucket)
+    #         if mlflow_bucket not in bucket_names:
+    #             s3.create_bucket(Bucket=mlflow_bucket)
+    #             logger.info("Created missing MLFlow bucket %s", mlflow_bucket)
 
-        except Exception as e:
-            logger.error('MinIO connection failed: %s', str(e))
+    #     except Exception as e:
+    #         logger.error('MinIO connection failed: %s', str(e))
     
 
     # feature engineering & preprocessing
@@ -173,21 +181,38 @@ class FraudDetectionTraining:
 
     def read_from_kafka(self,max_messages: int = 200000, timeout_minutes: int = 5) -> pd.DataFrame:
         try:
-            topic = os.getenv('KAFKA_TOPIC')
+            # topic = os.getenv('KAFKA_TOPIC')
+            topic = os.getenv('KAFKA_TOPIC') or self.config['kafka']['topic']
             logger.info('Connecting to Kafka topic %s', topic)
+
+            # consumer_config = {
+            #     'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
+            #     'security.protocol': 'SASL_SSL',
+            #     'sasl.mechanisms': 'PLAIN',
+            #     'sasl.username': os.getenv('KAFKA_USERNAME'),
+            #     'sasl.password':os.getenv('KAFKA_PASSWORD'),
+            #     'group.id': f'training_{uuid.uuid4().hex[:8]}',
+            #     'auto.offset.reset': 'earliest'
+            # }
+            kafka_username = os.getenv('KAFKA_USERNAME')
+            kafka_password = os.getenv('KAFKA_PASSWORD')
 
             consumer_config = {
                 'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
-                'security.protocol': 'SASL_SSL',
-                'sasl.mechanisms': 'PLAIN',
-                'sasl.username': os.getenv('KAFKA_USERNAME'),
-                'sasl.password':os.getenv('KAFKA_PASSWORD'),
+                'security.protocol': 'SASL_SSL' if kafka_username and kafka_password else 'PLAINTEXT',
                 'group.id': f'training_{uuid.uuid4().hex[:8]}',
                 'auto.offset.reset': 'earliest'
             }
 
+            if kafka_username and kafka_password:
+                consumer_config['sasl.mechanisms'] = 'PLAIN'
+                consumer_config['sasl.username'] = kafka_username
+                consumer_config['sasl.password'] = kafka_password
+
             consumer = Consumer(consumer_config)
             consumer.subscribe([topic])
+
+            
 
             messages = []
             start_time = time.time()

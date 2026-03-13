@@ -97,8 +97,6 @@ module "ecs" {
   ecs_sg_id                    = module.networking.ecs_sg_id
   task_execution_role_arn      = module.iam.ecs_task_execution_role_arn
   task_role_arn                = module.iam.ecs_task_role_arn
-  efs_id                       = module.networking.efs_id
-  efs_access_point_id          = module.networking.efs_access_point_id
   airflow_db_url_secret_arn    = module.rds.airflow_db_url_secret_arn
   mlflow_db_url_secret_arn     = module.rds.mlflow_db_url_secret_arn
   redis_url_secret_arn         = module.elasticache.redis_url_secret_arn

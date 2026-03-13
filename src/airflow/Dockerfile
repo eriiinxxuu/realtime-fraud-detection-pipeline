@@ -13,7 +13,7 @@ RUN mkdir -p /app/models && chown -R airflow:0 /app
 
 
 USER airflow
-COPY requirements.txt /tmp/requirements.txt
+COPY airflow/requirements.txt /tmp/requirements.txt
 
 # install Python packages as root
 RUN pip install -r /tmp/requirements.txt

@@ -33,14 +33,3 @@ output "msk_sg_id" {
   description = "Security group ID for MSK Kafka"
   value       = aws_security_group.msk.id
 }
-
-# EFS
-output "efs_id" {
-  description = "ID of the EFS file system for Airflow DAGs"
-  value       = aws_efs_file_system.dags.id
-}
-
-output "efs_access_point_id" {
-  description = "ID of the EFS access point for Airflow DAGs"
-  value       = aws_efs_access_point.dags.id
-}

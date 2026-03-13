@@ -39,15 +39,6 @@ variable "task_role_arn" {
   type        = string
 }
 
-variable "efs_id" {
-  description = "EFS file system ID for Airflow DAGs"
-  type        = string
-}
-
-variable "efs_access_point_id" {
-  description = "EFS access point ID for Airflow DAGs"
-  type        = string
-}
 
 variable "airflow_db_url_secret_arn" {
   description = "Secrets Manager ARN for Airflow database connection string"
@@ -88,4 +79,10 @@ variable "image_tag" {
   description = "Docker image tag to deploy"
   type        = string
   default     = "latest"
+}
+
+variable "github_repo_url" {
+  description = "GitHub repo URL for git-sync"
+  type        = string
+  default     = "https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline"
 }

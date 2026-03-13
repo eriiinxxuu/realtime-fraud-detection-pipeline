@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 
 # Verify network connectivity before downloading
-RUN wget -q --spider http://google.com || (echo "Network issue: Unable to reach the internet" && exit 1)
+# RUN wget -q --spider http://google.com || (echo "Network issue: Unable to reach the internet" && exit 1)
 
 # Define Spark version and URLs
 ENV SPARK_VERSION=3.5.4
@@ -52,10 +52,11 @@ WORKDIR /app
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY inference/requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY main.py .
+COPY inference/main.py .
+COPY config.yaml .
 
 # stage2: runtime stage
 FROM python:3.10.16-slim-bookworm as runtime
@@ -79,6 +80,7 @@ WORKDIR /app
 COPY --from=builder /spark /spark
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app/main.py .
+COPY --from=builder /app/config.yaml . 
 
 # Environment configuration
 ENV SPARK_HOME=/spark \
@@ -99,11 +101,11 @@ RUN useradd -m sparkuser && \
 USER sparkuser
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s \
-    CMD curl -f http://localhost:8000/health || exit 1
+# HEALTHCHECK --interval=30s --timeout=10s \
+#     CMD curl -f http://localhost:8000/health || exit 1
 
-# Expose ports
-EXPOSE 8000
+# # Expose ports
+# EXPOSE 8000
 
 # Entrypoint with explicit path
 CMD ["spark-submit", \

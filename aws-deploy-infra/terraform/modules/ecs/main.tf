@@ -1,12 +1,12 @@
 # ============================================================
 # ECS Module — Overview
 #
-# Creates ECS Cluster + all services mirroring docker-compose:
+# Creates ECS Cluster + all services:
 #
-#   Airflow (5 services, shared image)
+#   Airflow (5 services, shared image + git-sync sidecar)
 #   ├── airflow-apiserver      → Airflow UI + API
 #   ├── airflow-scheduler      → schedules DAGs
-#   ├── airflow-dag-processor  → parses DAG files from EFS
+#   ├── airflow-dag-processor  → parses DAG files
 #   ├── airflow-worker x2      → executes tasks
 #   └── airflow-triggerer      → handles async tasks
 #
@@ -14,16 +14,11 @@
 #   ├── mlflow-server          → experiment tracking
 #   ├── producer x2            → writes events to MSK
 #   └── inference              → Spark Streaming fraud detection
-#
-# 8 containers in total
-#
-# All containers:
-#   ├── pull images from ECR (via VPC Endpoint)
-#   ├── send logs to CloudWatch (via VPC Endpoint)
-#   └── read secrets from Secrets Manager (via VPC Endpoint)
-#
-# Airflow containers additionally:
-#   └── mount EFS for shared DAG files
+# 8 services total, all running on Fargate with shared ECR images \\
+# and git-sync sidecars for Airflow. 
+# Airflow containers:
+#   └── git-sync sidecar pulls DAGs from GitHub every 60s
+#       into shared emptyDir volume at /opt/airflow/dags
 # ============================================================
 
 # ---------- ECS Cluster ----------
@@ -71,8 +66,7 @@ resource "aws_cloudwatch_log_group" "services" {
 }
 
 # ============================================================
-# Shared: Airflow environment variables
-# Mirrors x-airflow-common from docker-compose
+# Shared locals
 # ============================================================
 locals {
   airflow_environment = [
@@ -105,12 +99,43 @@ locals {
     },
   ]
 
-  efs_volume_name = "dags-efs"
+  # git-sync sidecar — shared across all Airflow task definitions
+  git_sync_container = {
+    name      = "git-sync"
+    image     = "registry.k8s.io/git-sync/git-sync:v4.2.1"
+    essential = false
+
+    environment = [
+      { name = "GITSYNC_REPO",   value = var.github_repo_url },
+      { name = "GITSYNC_BRANCH", value = "main" },
+      { name = "GITSYNC_ROOT",   value = "/git" },
+      { name = "GITSYNC_LINK",   value = "dags" },
+      { name = "GITSYNC_PERIOD", value = "60s" },
+      { name = "GITSYNC_DEPTH",  value = "1" },
+      { name = "GITSYNC_SUBDIR", value = "src/dags" },
+    ]
+
+    mountPoints = [{
+      sourceVolume  = "dags-git"
+      containerPath = "/git"
+      readOnly      = false
+    }]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/${var.project_name}/airflow-apiserver"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "git-sync"
+      }
+    }
+  }
+
+  dags_volume_name = "dags-git"
 }
 
 # ============================================================
-# Service Discovery — internal DNS for inter-service comms
-# e.g. mlflow-server.fraud-detection.local:5500
+# Service Discovery
 # ============================================================
 resource "aws_service_discovery_private_dns_namespace" "main" {
   name        = "${var.project_name}.local"
@@ -133,55 +158,50 @@ resource "aws_ecs_task_definition" "airflow_apiserver" {
   task_role_arn            = var.task_role_arn
 
   volume {
-    name = local.efs_volume_name
-    efs_volume_configuration {
-      file_system_id     = var.efs_id
-      transit_encryption = "ENABLED"
-      authorization_config {
-        access_point_id = var.efs_access_point_id
-        iam             = "ENABLED"
-      }
-    }
+    name = local.dags_volume_name
   }
 
-  container_definitions = jsonencode([{
-    name      = "airflow-apiserver"
-    image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
-    command   = ["api-server"]
-    essential = true
+  container_definitions = jsonencode([
+    {
+      name      = "airflow-apiserver"
+      image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
+      command   = ["api-server"]
+      essential = true
 
-    portMappings = [{
-      name          = "airflow-api"    
-      containerPort = 8080
-      protocol      = "tcp"
-    }]
+      portMappings = [{
+        name          = "airflow-api"
+        containerPort = 8080
+        protocol      = "tcp"
+      }]
 
-    environment = local.airflow_environment
-    secrets     = local.airflow_secrets
+      environment = local.airflow_environment
+      secrets     = local.airflow_secrets
 
-    mountPoints = [{
-      sourceVolume  = local.efs_volume_name
-      containerPath = "/opt/airflow/dags"
-      readOnly      = true
-    }]
+      mountPoints = [{
+        sourceVolume  = local.dags_volume_name
+        containerPath = "/opt/airflow/dags"
+        readOnly      = true
+      }]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${var.project_name}/airflow-apiserver"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "ecs"
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${var.project_name}/airflow-apiserver"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
       }
-    }
 
-    healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:8080/api/v2/version || exit 1"]
-      interval    = 30
-      timeout     = 10
-      retries     = 5
-      startPeriod = 60
-    }
-  }])
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/api/v2/version || exit 1"]
+        interval    = 30
+        timeout     = 10
+        retries     = 5
+        startPeriod = 60
+      }
+    },
+    local.git_sync_container
+  ])
 
   tags = { Name = "${var.project_name}-airflow-apiserver" }
 }
@@ -213,10 +233,10 @@ resource "aws_ecs_service" "airflow_apiserver" {
     }
   }
 
-  deployment_circuit_breaker { 
-    enable = true
-    rollback = true 
-    }
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
   tags = { Name = "${var.project_name}-airflow-apiserver" }
 }
 
@@ -233,49 +253,44 @@ resource "aws_ecs_task_definition" "airflow_scheduler" {
   task_role_arn            = var.task_role_arn
 
   volume {
-    name = local.efs_volume_name
-    efs_volume_configuration {
-      file_system_id     = var.efs_id
-      transit_encryption = "ENABLED"
-      authorization_config {
-        access_point_id = var.efs_access_point_id
-        iam             = "ENABLED"
-      }
-    }
+    name = local.dags_volume_name
   }
 
-  container_definitions = jsonencode([{
-    name      = "airflow-scheduler"
-    image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
-    command   = ["scheduler"]
-    essential = true
+  container_definitions = jsonencode([
+    {
+      name      = "airflow-scheduler"
+      image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
+      command   = ["scheduler"]
+      essential = true
 
-    environment = local.airflow_environment
-    secrets     = local.airflow_secrets
+      environment = local.airflow_environment
+      secrets     = local.airflow_secrets
 
-    mountPoints = [{
-      sourceVolume  = local.efs_volume_name
-      containerPath = "/opt/airflow/dags"
-      readOnly      = false
-    }]
+      mountPoints = [{
+        sourceVolume  = local.dags_volume_name
+        containerPath = "/opt/airflow/dags"
+        readOnly      = true
+      }]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${var.project_name}/airflow-scheduler"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "ecs"
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${var.project_name}/airflow-scheduler"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
       }
-    }
 
-    healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:8974/health || exit 1"]
-      interval    = 30
-      timeout     = 10
-      retries     = 5
-      startPeriod = 60
-    }
-  }])
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8974/health || exit 1"]
+        interval    = 30
+        timeout     = 10
+        retries     = 5
+        startPeriod = 60
+      }
+    },
+    local.git_sync_container
+  ])
 
   tags = { Name = "${var.project_name}-airflow-scheduler" }
 }
@@ -294,8 +309,8 @@ resource "aws_ecs_service" "airflow_scheduler" {
   }
 
   deployment_circuit_breaker {
-    enable = true
-    rollback = true 
+    enable   = true
+    rollback = true
   }
   tags = { Name = "${var.project_name}-airflow-scheduler" }
 }
@@ -313,41 +328,36 @@ resource "aws_ecs_task_definition" "airflow_dag_processor" {
   task_role_arn            = var.task_role_arn
 
   volume {
-    name = local.efs_volume_name
-    efs_volume_configuration {
-      file_system_id     = var.efs_id
-      transit_encryption = "ENABLED"
-      authorization_config {
-        access_point_id = var.efs_access_point_id
-        iam             = "ENABLED"
-      }
-    }
+    name = local.dags_volume_name
   }
 
-  container_definitions = jsonencode([{
-    name      = "airflow-dag-processor"
-    image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
-    command   = ["dag-processor"]
-    essential = true
+  container_definitions = jsonencode([
+    {
+      name      = "airflow-dag-processor"
+      image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
+      command   = ["dag-processor"]
+      essential = true
 
-    environment = local.airflow_environment
-    secrets     = local.airflow_secrets
+      environment = local.airflow_environment
+      secrets     = local.airflow_secrets
 
-    mountPoints = [{
-      sourceVolume  = local.efs_volume_name
-      containerPath = "/opt/airflow/dags"
-      readOnly      = true
-    }]
+      mountPoints = [{
+        sourceVolume  = local.dags_volume_name
+        containerPath = "/opt/airflow/dags"
+        readOnly      = true
+      }]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${var.project_name}/airflow-dag-processor"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "ecs"
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${var.project_name}/airflow-dag-processor"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
       }
-    }
-  }])
+    },
+    local.git_sync_container
+  ])
 
   tags = { Name = "${var.project_name}-airflow-dag-processor" }
 }
@@ -366,9 +376,9 @@ resource "aws_ecs_service" "airflow_dag_processor" {
   }
 
   deployment_circuit_breaker {
-    enable = true
+    enable   = true
     rollback = true
-    }
+  }
   tags = { Name = "${var.project_name}-airflow-dag-processor" }
 }
 
@@ -385,43 +395,38 @@ resource "aws_ecs_task_definition" "airflow_worker" {
   task_role_arn            = var.task_role_arn
 
   volume {
-    name = local.efs_volume_name
-    efs_volume_configuration {
-      file_system_id     = var.efs_id
-      transit_encryption = "ENABLED"
-      authorization_config {
-        access_point_id = var.efs_access_point_id
-        iam             = "ENABLED"
-      }
-    }
+    name = local.dags_volume_name
   }
 
-  container_definitions = jsonencode([{
-    name      = "airflow-worker"
-    image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
-    command   = ["celery", "worker"]
-    essential = true
+  container_definitions = jsonencode([
+    {
+      name      = "airflow-worker"
+      image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
+      command   = ["celery", "worker"]
+      essential = true
 
-    environment = concat(local.airflow_environment, [
-      { name = "DUMB_INIT_SETSID", value = "0" }
-    ])
-    secrets = local.airflow_secrets
+      environment = concat(local.airflow_environment, [
+        { name = "DUMB_INIT_SETSID", value = "0" }
+      ])
+      secrets = local.airflow_secrets
 
-    mountPoints = [{
-      sourceVolume  = local.efs_volume_name
-      containerPath = "/opt/airflow/dags"
-      readOnly      = true
-    }]
+      mountPoints = [{
+        sourceVolume  = local.dags_volume_name
+        containerPath = "/opt/airflow/dags"
+        readOnly      = true
+      }]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${var.project_name}/airflow-worker"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "ecs"
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${var.project_name}/airflow-worker"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
       }
-    }
-  }])
+    },
+    local.git_sync_container
+  ])
 
   tags = { Name = "${var.project_name}-airflow-worker" }
 }
@@ -440,9 +445,9 @@ resource "aws_ecs_service" "airflow_worker" {
   }
 
   deployment_circuit_breaker {
-    enable = true
+    enable   = true
     rollback = true
-    }
+  }
   tags = { Name = "${var.project_name}-airflow-worker" }
 }
 
@@ -459,41 +464,36 @@ resource "aws_ecs_task_definition" "airflow_triggerer" {
   task_role_arn            = var.task_role_arn
 
   volume {
-    name = local.efs_volume_name
-    efs_volume_configuration {
-      file_system_id     = var.efs_id
-      transit_encryption = "ENABLED"
-      authorization_config {
-        access_point_id = var.efs_access_point_id
-        iam             = "ENABLED"
-      }
-    }
+    name = local.dags_volume_name
   }
 
-  container_definitions = jsonencode([{
-    name      = "airflow-triggerer"
-    image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
-    command   = ["triggerer"]
-    essential = true
+  container_definitions = jsonencode([
+    {
+      name      = "airflow-triggerer"
+      image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
+      command   = ["triggerer"]
+      essential = true
 
-    environment = local.airflow_environment
-    secrets     = local.airflow_secrets
+      environment = local.airflow_environment
+      secrets     = local.airflow_secrets
 
-    mountPoints = [{
-      sourceVolume  = local.efs_volume_name
-      containerPath = "/opt/airflow/dags"
-      readOnly      = true
-    }]
+      mountPoints = [{
+        sourceVolume  = local.dags_volume_name
+        containerPath = "/opt/airflow/dags"
+        readOnly      = true
+      }]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/${var.project_name}/airflow-triggerer"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "ecs"
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${var.project_name}/airflow-triggerer"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
       }
-    }
-  }])
+    },
+    local.git_sync_container
+  ])
 
   tags = { Name = "${var.project_name}-airflow-triggerer" }
 }
@@ -512,9 +512,9 @@ resource "aws_ecs_service" "airflow_triggerer" {
   }
 
   deployment_circuit_breaker {
-    enable = true
+    enable   = true
     rollback = true
-    }
+  }
   tags = { Name = "${var.project_name}-airflow-triggerer" }
 }
 
@@ -536,7 +536,7 @@ resource "aws_ecs_task_definition" "mlflow_server" {
     essential = true
 
     portMappings = [{
-      name          = "mlflow"        
+      name          = "mlflow"
       containerPort = 5500
       protocol      = "tcp"
     }]
@@ -607,9 +607,9 @@ resource "aws_ecs_service" "mlflow_server" {
   }
 
   deployment_circuit_breaker {
-    enable = true
+    enable   = true
     rollback = true
-    }
+  }
   tags = { Name = "${var.project_name}-mlflow-server" }
 }
 
@@ -630,11 +630,11 @@ resource "aws_ecs_task_definition" "producer" {
     image     = "${var.ecr_urls["producer"]}:${var.image_tag}"
     essential = true
 
-   environment = [
-    { name = "AWS_DEFAULT_REGION",      value = var.aws_region },
-    { name = "KAFKA_SECURITY_PROTOCOL", value = "PLAINTEXT" },
-    { name = "KAFKA_SASL_MECHANISM",    value = "" },
-  ]
+    environment = [
+      { name = "AWS_DEFAULT_REGION",      value = var.aws_region },
+      { name = "KAFKA_SECURITY_PROTOCOL", value = "PLAINTEXT" },
+      { name = "KAFKA_SASL_MECHANISM",    value = "" },
+    ]
 
     secrets = [
       { name = "KAFKA_BOOTSTRAP_SERVERS", valueFrom = var.bootstrap_servers_secret_arn }
@@ -667,15 +667,14 @@ resource "aws_ecs_service" "producer" {
   }
 
   deployment_circuit_breaker {
-    enable = true
+    enable   = true
     rollback = true
-    }
+  }
   tags = { Name = "${var.project_name}-producer" }
 }
 
 # ============================================================
 # SERVICE: inference (Spark Structured Streaming)
-# 4 vCPU, 8GB — Spark needs more resources
 # ============================================================
 resource "aws_ecs_task_definition" "inference" {
   family                   = "${var.project_name}-inference"
@@ -692,12 +691,12 @@ resource "aws_ecs_task_definition" "inference" {
     essential = true
 
     environment = [
-    { name = "AWS_DEFAULT_REGION",      value = var.aws_region },
-    { name = "MLFLOW_TRACKING_URI",     value = "http://mlflow-server.${var.project_name}.local:5500" },
-    { name = "KAFKA_SECURITY_PROTOCOL", value = "PLAINTEXT" },
-    { name = "KAFKA_SASL_MECHANISM",    value = "" },
-    { name = "MLFLOW_S3_ENDPOINT_URL",  value = "" },
-  ]
+      { name = "AWS_DEFAULT_REGION",      value = var.aws_region },
+      { name = "MLFLOW_TRACKING_URI",     value = "http://mlflow-server.${var.project_name}.local:5500" },
+      { name = "KAFKA_SECURITY_PROTOCOL", value = "PLAINTEXT" },
+      { name = "KAFKA_SASL_MECHANISM",    value = "" },
+      { name = "MLFLOW_S3_ENDPOINT_URL",  value = "" },
+    ]
 
     secrets = [
       { name = "KAFKA_BOOTSTRAP_SERVERS", valueFrom = var.bootstrap_servers_secret_arn }
@@ -730,8 +729,8 @@ resource "aws_ecs_service" "inference" {
   }
 
   deployment_circuit_breaker {
-    enable = true
+    enable   = true
     rollback = true
-    }
+  }
   tags = { Name = "${var.project_name}-inference" }
 }

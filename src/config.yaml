@@ -1,16 +1,19 @@
 mlflow: 
   experiment_name: "fraud_detection_train"
   registered_model_name: "fraud_detection_lightgbm"
-  tracking_url: "http://mlflow-server:5500"
-  artifact_location: "s3://mlflow/fraud_detection_lightgbm"
-  s3_endpoint_url: "http://minio:9000"
-  bucket: "mlflow"
+  tracking_url: "http://mlflow-server.fraud-detection.local:5500"
+  artifact_location: "s3://fraud-detection-mlflow-artifacts/fraud_detection_lightgbm"
+  # s3_endpoint_url: "http://minio:9000"
+  # bucket: "mlflow"
+  bucket: "fraud-detection-mlflow-artifacts"
 
 kafka:
   topic: "transactions"
   output_topic: "fraud_prediction"
-  security_protocol: "SASL_SSL"
-  sasl_mechanism: "PLAIN"
+  # security_protocol: "SASL_SSL"
+  security_protocol: "PLAINTEXT"
+  # sasl_mechanism: "PLAIN"
+  sasl_mechanism: ""
 
 model:
   test_size: 0.2
@@ -31,6 +34,7 @@ model:
 
 spark:
   app_name: "FraudDetectionInference"
-  pacakges: "org.mlflow:mlflow-spark:2.6.0,com.google.guava:guava:30.1.1-jre,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.4,org.apache.hadoop:hadoop-aws:3.3.0,com.amazonaws:aws-java-sdk:1.11.469"
+  # packages: "org.mlflow:mlflow-spark:2.6.0,com.google.guava:guava:30.1.1-jre,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.4,org.apache.hadoop:hadoop-aws:3.3.0,com.amazonaws:aws-java-sdk:1.11.469"
+  packages: ""
   shuffle_partition: 200
   checkpoint_location: 'checkpoints'
