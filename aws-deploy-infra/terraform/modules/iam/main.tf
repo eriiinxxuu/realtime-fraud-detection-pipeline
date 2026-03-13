@@ -100,7 +100,9 @@ resource "aws_iam_role_policy" "github_actions" {
           "secretsmanager:*", "ssm:*",
           "elasticloadbalancing:*",
           "application-autoscaling:*",
-          "cloudwatch:*", "dynamodb:*"
+          "cloudwatch:*", "dynamodb:*",
+          "servicediscovery:*",
+          "kafka:*"
         ]
         Resource = "*"
       }
