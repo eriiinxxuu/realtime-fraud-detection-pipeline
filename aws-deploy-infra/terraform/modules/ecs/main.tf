@@ -104,6 +104,7 @@ locals {
     name      = "git-sync"
     image     = "registry.k8s.io/git-sync/git-sync:v4.2.1"
     essential = false
+    user = "0"
 
     environment = [
       { name = "GITSYNC_REPO",   value = var.github_repo_url },

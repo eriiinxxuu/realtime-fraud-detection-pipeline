@@ -123,14 +123,20 @@ class TransactionProducer:
         self.producer_config = {
             'bootstrap.servers': self.bootstrap_servers,
             'security.protocol': 'SASL_SSL' if self.kafka_username and self.kafka_password else 'PLAINTEXT',
-            'sasl.mechanism': 'PLAIN' if self.kafka_username and self.kafka_password else None,
-            'sasl.username': self.kafka_username,
-            'sasl.password': self.kafka_password,
+            # 'sasl.mechanism': 'PLAIN' if self.kafka_username and self.kafka_password else None,
+            # 'sasl.username': self.kafka_username,
+            # 'sasl.password': self.kafka_password,
             'client.id': 'transaction-producer',
             'compression.type': 'gzip',
             'linger.ms': 5,
             'batch.size': 15000,
         }
+
+        if self.kafka_username and self.kafka_password:
+            self.producer_config['sasl.mechanism'] = 'PLAIN'
+            self.producer_config['sasl.username'] = self.kafka_username
+            self.producer_config['sasl.password'] = self.kafka_password
+
         try:
             self.producer = Producer(self.producer_config)
             logger.info("Kafka Producer initialized successfully.")
