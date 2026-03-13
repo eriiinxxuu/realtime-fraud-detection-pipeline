@@ -105,4 +105,7 @@ module "ecs" {
   mlflow_bucket_name           = module.s3.mlflow_bucket_name
   ecr_urls                     = module.ecr.repository_urls
   image_tag                    = var.image_tag
+  master_db_password_secret_arn  = module.rds.master_password_secret_arn
+  airflow_db_password_secret_arn = module.rds.airflow_db_password_secret_arn
+  mlflow_db_password_secret_arn  = module.rds.mlflow_db_password_secret_arn
 }

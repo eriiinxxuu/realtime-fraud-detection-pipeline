@@ -79,6 +79,26 @@ resource "aws_secretsmanager_secret_version" "mlflow_db_url" {
   depends_on = [aws_db_instance.main]
 }
 
+
+resource "aws_secretsmanager_secret" "airflow_db_password" {
+  name                    = "${var.project_name}/airflow/db-password"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "airflow_db_password" {
+  secret_id     = aws_secretsmanager_secret.airflow_db_password.id
+  secret_string = var.airflow_db_password
+}
+
+resource "aws_secretsmanager_secret" "mlflow_db_password" {
+  name                    = "${var.project_name}/mlflow/db-password"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "mlflow_db_password" {
+  secret_id     = aws_secretsmanager_secret.mlflow_db_password.id
+  secret_string = var.mlflow_db_password
+}
 # ---------- RDS Instance ----------
 resource "aws_db_instance" "main" {
   identifier = "${var.project_name}-postgres"

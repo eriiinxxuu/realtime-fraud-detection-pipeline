@@ -78,6 +78,7 @@ locals {
     { name = "AIRFLOW__CORE__EXECUTION_API_SERVER_URL",    value = "http://airflow-apiserver.${var.project_name}.local:8080/execution/" },
     { name = "MLFLOW_TRACKING_URI",                        value = "http://mlflow-server.${var.project_name}.local:5500" },
     { name = "AWS_DEFAULT_REGION",                         value = var.aws_region },
+    { name = "RDS_HOST", value = "fraud-detection-postgres.cbu00k8auquu.ap-southeast-2.rds.amazonaws.com" },
   ]
 
   airflow_secrets = [
@@ -96,6 +97,18 @@ locals {
     {
       name      = "AIRFLOW__API_AUTH__JWT_SECRET"
       valueFrom = var.airflow_jwt_secret_arn
+    },
+    {
+      name      = "MASTER_DB_PASSWORD"
+      valueFrom = var.master_db_password_secret_arn
+    },
+    {
+      name      = "AIRFLOW_DB_PASSWORD"
+      valueFrom = var.airflow_db_password_secret_arn
+    },
+    {
+      name      = "MLFLOW_DB_PASSWORD"
+      valueFrom = var.mlflow_db_password_secret_arn
     },
   ]
 

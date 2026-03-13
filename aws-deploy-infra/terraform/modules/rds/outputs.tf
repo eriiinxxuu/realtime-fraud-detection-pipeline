@@ -12,3 +12,11 @@ output "mlflow_db_url_secret_arn" {
   description = "Secrets Manager ARN for MLflow DB connection string"
   value       = aws_secretsmanager_secret.mlflow_db_url.arn
 }
+
+output "airflow_db_password_secret_arn" {
+  value = aws_secretsmanager_secret.airflow_db_password.arn
+}
+
+output "mlflow_db_password_secret_arn" {
+  value = aws_secretsmanager_secret.mlflow_db_password.arn
+}

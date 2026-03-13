@@ -86,3 +86,18 @@ variable "github_repo_url" {
   type        = string
   default     = "https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline"
 }
+
+variable "master_db_password_secret_arn" {
+  description = "Secrets Manager ARN for RDS master password"
+  type        = string
+}
+
+variable "airflow_db_password_secret_arn" {
+  description = "Secrets Manager ARN for Airflow DB password"
+  type        = string
+}
+
+variable "mlflow_db_password_secret_arn" {
+  description = "Secrets Manager ARN for MLflow DB password"
+  type        = string
+}
