@@ -214,6 +214,7 @@ resource "aws_ecs_service" "airflow_apiserver" {
   desired_count        = 1
   launch_type          = "FARGATE"
   force_new_deployment = true
+  enable_execute_command = true
 
   network_configuration {
     subnets         = var.private_subnet_ids
@@ -303,6 +304,7 @@ resource "aws_ecs_service" "airflow_scheduler" {
   desired_count        = 1
   launch_type          = "FARGATE"
   force_new_deployment = true
+  enable_execute_command = true
 
   network_configuration {
     subnets         = var.private_subnet_ids
@@ -370,6 +372,7 @@ resource "aws_ecs_service" "airflow_dag_processor" {
   desired_count        = 1
   launch_type          = "FARGATE"
   force_new_deployment = true
+  enable_execute_command = true
 
   network_configuration {
     subnets         = var.private_subnet_ids
@@ -439,6 +442,7 @@ resource "aws_ecs_service" "airflow_worker" {
   desired_count        = 2
   launch_type          = "FARGATE"
   force_new_deployment = true
+  enable_execute_command = true
 
   network_configuration {
     subnets         = var.private_subnet_ids
@@ -506,6 +510,7 @@ resource "aws_ecs_service" "airflow_triggerer" {
   desired_count        = 1
   launch_type          = "FARGATE"
   force_new_deployment = true
+  enable_execute_command = true
 
   network_configuration {
     subnets         = var.private_subnet_ids
