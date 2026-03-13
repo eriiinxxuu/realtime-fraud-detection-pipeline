@@ -16,3 +16,4 @@ tqdm-joblib
 matplotlib
 imbalanced-learn
 pyyaml
+psycopg2-binary
