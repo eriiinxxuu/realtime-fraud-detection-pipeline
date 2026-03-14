@@ -99,6 +99,17 @@ resource "aws_secretsmanager_secret_version" "mlflow_db_password" {
   secret_id     = aws_secretsmanager_secret.mlflow_db_password.id
   secret_string = var.mlflow_db_password
 }
+
+resource "aws_secretsmanager_secret" "airflow_celery_result_backend" {
+  name                    = "${var.project_name}/airflow/celery-result-backend"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "airflow_celery_result_backend" {
+  secret_id     = aws_secretsmanager_secret.airflow_celery_result_backend.id
+  secret_string = "db+postgresql://airflow:${var.airflow_db_password}@${aws_db_instance.main.address}:5432/airflow?sslmode=require"
+  depends_on    = [aws_db_instance.main]
+}
 # ---------- RDS Instance ----------
 resource "aws_db_instance" "main" {
   identifier = "${var.project_name}-postgres"

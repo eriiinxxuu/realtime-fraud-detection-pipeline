@@ -108,4 +108,5 @@ module "ecs" {
   master_db_password_secret_arn  = module.rds.master_password_secret_arn
   airflow_db_password_secret_arn = module.rds.airflow_db_password_secret_arn
   mlflow_db_password_secret_arn  = module.rds.mlflow_db_password_secret_arn
+  airflow_celery_result_backend_secret_arn = module.rds.airflow_celery_result_backend_secret_arn
 }

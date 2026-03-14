@@ -79,6 +79,7 @@ locals {
     { name = "MLFLOW_TRACKING_URI",                        value = "http://mlflow-server.${var.project_name}.local:5500" },
     { name = "AWS_DEFAULT_REGION",                         value = var.aws_region },
     { name = "RDS_HOST", value = "fraud-detection-postgres.cbu00k8auquu.ap-southeast-2.rds.amazonaws.com" },
+    { name = "AIRFLOW__CORE__DAGS_FOLDER", value = "/opt/airflow/dags/dags" },
   ]
 
   airflow_secrets = [
@@ -88,7 +89,7 @@ locals {
     },
     {
       name      = "AIRFLOW__CELERY__RESULT_BACKEND"
-      valueFrom = var.airflow_db_url_secret_arn
+      valueFrom = var.airflow_celery_result_backend_secret_arn
     },
     {
       name      = "AIRFLOW__CELERY__BROKER_URL"
@@ -122,7 +123,7 @@ locals {
     environment = [
       { name = "GITSYNC_REPO",   value = var.github_repo_url },
       { name = "GITSYNC_BRANCH", value = "main" },
-      { name = "GITSYNC_ROOT",   value = "/git" },
+      { name = "GITSYNC_ROOT",   value = "tmp//git" },
       { name = "GITSYNC_LINK",   value = "dags" },
       { name = "GITSYNC_PERIOD", value = "60s" },
       { name = "GITSYNC_DEPTH",  value = "1" },
@@ -131,7 +132,7 @@ locals {
 
     mountPoints = [{
       sourceVolume  = "dags-git"
-      containerPath = "/git"
+      containerPath = "/tmp/git"
       readOnly      = false
     }]
 
@@ -569,9 +570,9 @@ resource "aws_ecs_task_definition" "mlflow_server" {
     ]
 
     command = [
-  "sh", "-c",
-  "mlflow server --port 5500 --host 0.0.0.0 --backend-store-uri $MLFLOW_DB_URL --default-artifact-root s3://${var.mlflow_bucket_name}/ --allowed-hosts *"
-  ] 
+    "sh", "-c",
+    "mlflow server --port 5500 --host 0.0.0.0 --backend-store-uri $MLFLOW_DB_URL --default-artifact-root s3://${var.mlflow_bucket_name}/ --allowed-hosts *"
+    ] 
 
     logConfiguration = {
       logDriver = "awslogs"
@@ -582,13 +583,6 @@ resource "aws_ecs_task_definition" "mlflow_server" {
       }
     }
 
-    healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:5500/health || exit 1"]
-      interval    = 30
-      timeout     = 10
-      retries     = 3
-      startPeriod = 30
-    }
   }])
 
   tags = { Name = "${var.project_name}-mlflow-server" }
@@ -626,6 +620,9 @@ resource "aws_ecs_service" "mlflow_server" {
     rollback = true
   }
   tags = { Name = "${var.project_name}-mlflow-server" }
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 }
 
 # ============================================================
@@ -686,6 +683,9 @@ resource "aws_ecs_service" "producer" {
     rollback = true
   }
   tags = { Name = "${var.project_name}-producer" }
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 }
 
 # ============================================================

@@ -25,3 +25,8 @@ output "master_password_secret_arn" {
   description = "Secrets Manager ARN for RDS master password"
   value       = aws_secretsmanager_secret.rds_master.arn
 }
+
+output "airflow_celery_result_backend_secret_arn" {
+  description = "Secrets Manager ARN for Airflow Celery result backend"
+  value       = aws_secretsmanager_secret.airflow_celery_result_backend.arn
+}
