@@ -435,6 +435,8 @@ resource "aws_ecs_task_definition" "airflow_worker" {
       image     = "${var.ecr_urls["airflow"]}:${var.image_tag}"
       command   = ["celery", "worker"]
       essential = true
+      
+      dnsSearchDomains = ["fraud-detection.local"]
 
       environment = concat(local.airflow_environment, [
         { name = "DUMB_INIT_SETSID", value = "0" },
@@ -458,7 +460,7 @@ resource "aws_ecs_task_definition" "airflow_worker" {
     },
     local.git_sync_container
   ])
-
+  
   tags = { Name = "${var.project_name}-airflow-worker" }
 }
 
