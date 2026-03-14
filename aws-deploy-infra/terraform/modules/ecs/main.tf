@@ -116,6 +116,11 @@ locals {
       {
       name      = "AIRFLOW__API__SECRET_KEY"
       valueFrom = var.airflow_jwt_secret_arn
+    },
+
+    {
+    name      = "KAFKA_BOOTSTRAP_SERVERS"
+    valueFrom = var.bootstrap_servers_secret_arn
   },
   ]
 
