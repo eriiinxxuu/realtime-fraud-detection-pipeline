@@ -417,6 +417,7 @@ resource "aws_ecs_task_definition" "airflow_dag_processor" {
   tags = { Name = "${var.project_name}-airflow-dag-processor" }
 }
 
+
 resource "aws_ecs_service" "airflow_dag_processor" {
   name                 = "airflow-dag-processor"
   cluster              = aws_ecs_cluster.main.id
