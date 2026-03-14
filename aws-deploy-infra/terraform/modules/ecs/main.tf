@@ -162,6 +162,22 @@ resource "aws_service_discovery_private_dns_namespace" "main" {
   tags = { Name = "${var.project_name}-dns-namespace" }
 }
 
+resource "aws_service_discovery_service" "airflow_apiserver" {
+  name         = "airflow-apiserver"
+  namespace_id = aws_service_discovery_private_dns_namespace.main.id
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+}
+
 # ============================================================
 # SERVICE: airflow-apiserver
 # ============================================================
@@ -237,21 +253,10 @@ resource "aws_ecs_service" "airflow_apiserver" {
     security_groups = [var.ecs_sg_id]
   }
 
-  service_connect_configuration {
-    enabled   = true
-    namespace = aws_service_discovery_private_dns_namespace.main.arn
-
-    service {
-      port_name      = "airflow-api"
-      discovery_name = "airflow-apiserver"
-      client_alias {
-        port     = 8080
-        dns_name = "airflow-apiserver"
-      }
-    }
-    
+  service_registries {
+    registry_arn = aws_service_discovery_service.airflow_apiserver.arn
   }
-
+  
   deployment_circuit_breaker {
     enable   = true
     rollback = true
