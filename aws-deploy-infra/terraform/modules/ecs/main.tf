@@ -123,7 +123,7 @@ locals {
     environment = [
       { name = "GITSYNC_REPO",   value = var.github_repo_url },
       { name = "GITSYNC_BRANCH", value = "main" },
-      { name = "GITSYNC_ROOT",   value = "tmp//git" },
+      { name = "GITSYNC_ROOT",   value = "/data/git" },
       { name = "GITSYNC_LINK",   value = "dags" },
       { name = "GITSYNC_PERIOD", value = "60s" },
       { name = "GITSYNC_DEPTH",  value = "1" },
@@ -132,7 +132,7 @@ locals {
 
     mountPoints = [{
       sourceVolume  = "dags-git"
-      containerPath = "/tmp/git"
+      containerPath = "/data/git"
       readOnly      = false
     }]
 
