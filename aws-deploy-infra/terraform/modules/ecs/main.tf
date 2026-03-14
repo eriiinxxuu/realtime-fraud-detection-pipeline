@@ -249,6 +249,7 @@ resource "aws_ecs_service" "airflow_apiserver" {
         dns_name = "airflow-apiserver"
       }
     }
+    
   }
 
   deployment_circuit_breaker {
@@ -331,6 +332,11 @@ resource "aws_ecs_service" "airflow_scheduler" {
     enable   = true
     rollback = true
   }
+
+  service_connect_configuration {
+  enabled   = true
+  namespace = aws_service_discovery_private_dns_namespace.main.arn
+}
   tags = { Name = "${var.project_name}-airflow-scheduler" }
 }
 
@@ -399,6 +405,11 @@ resource "aws_ecs_service" "airflow_dag_processor" {
     enable   = true
     rollback = true
   }
+
+  service_connect_configuration {
+  enabled   = true
+  namespace = aws_service_discovery_private_dns_namespace.main.arn
+}
   tags = { Name = "${var.project_name}-airflow-dag-processor" }
 }
 
@@ -469,6 +480,11 @@ resource "aws_ecs_service" "airflow_worker" {
     enable   = true
     rollback = true
   }
+
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.main.arn
+  }
   tags = { Name = "${var.project_name}-airflow-worker" }
 }
 
@@ -537,6 +553,12 @@ resource "aws_ecs_service" "airflow_triggerer" {
     enable   = true
     rollback = true
   }
+
+  service_connect_configuration {
+  enabled   = true
+  namespace = aws_service_discovery_private_dns_namespace.main.arn
+}
+
   tags = { Name = "${var.project_name}-airflow-triggerer" }
 }
 
