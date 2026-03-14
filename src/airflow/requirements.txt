@@ -17,4 +17,3 @@ matplotlib
 imbalanced-learn
 pyyaml
 psycopg2-binary
-gevent

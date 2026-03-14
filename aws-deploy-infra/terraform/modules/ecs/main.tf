@@ -80,7 +80,7 @@ locals {
     { name = "AWS_DEFAULT_REGION",                         value = var.aws_region },
     { name = "RDS_HOST", value = "fraud-detection-postgres.cbu00k8auquu.ap-southeast-2.rds.amazonaws.com" },
     { name = "AIRFLOW__CORE__DAGS_FOLDER", value = "/opt/airflow/dags/dags/src/dags"  },
-    { name = "AIRFLOW__CELERY__POOL", value = "gevent" }, 
+    { name = "AIRFLOW__CELERY__POOL", value = "solo" }, 
     { name = "AIRFLOW__CELERY__WORKER_CONCURRENCY", value = "4" },
   ]
 
