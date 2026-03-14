@@ -424,7 +424,9 @@ resource "aws_ecs_task_definition" "airflow_worker" {
       essential = true
 
       environment = concat(local.airflow_environment, [
-        { name = "DUMB_INIT_SETSID", value = "0" }
+        { name = "DUMB_INIT_SETSID", value = "0" },
+        { name = "AIRFLOW__CELERY__WORKER_CONCURRENCY", value = "4" },
+        { name = "AIRFLOW__CELERY__POOL", value = "solo" },
       ])
       secrets = local.airflow_secrets
 
