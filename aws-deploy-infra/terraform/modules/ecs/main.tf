@@ -455,6 +455,10 @@ resource "aws_ecs_task_definition" "airflow_worker" {
   memory                   = 8192
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 
   volume {
     name = local.dags_volume_name
@@ -652,11 +656,13 @@ resource "aws_ecs_service" "mlflow_server" {
   desired_count        = 1
   launch_type          = "FARGATE"
   force_new_deployment = true
+  enable_execute_command = true
 
   network_configuration {
     subnets         = var.private_subnet_ids
     security_groups = [var.ecs_sg_id]
   }
+  
 
   # service_connect_configuration {
   #   enabled   = true
@@ -671,6 +677,9 @@ resource "aws_ecs_service" "mlflow_server" {
   #     }
   #   }
   # }
+  service_registries {
+    registry_arn = aws_service_discovery_service.mlflow_server.arn
+  }
 
   deployment_circuit_breaker {
     enable   = true
