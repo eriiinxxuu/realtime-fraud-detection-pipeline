@@ -101,3 +101,8 @@ variable "mlflow_db_password_secret_arn" {
   description = "Secrets Manager ARN for MLflow DB password"
   type        = string
 }
+
+variable "airflow_celery_result_backend_secret_arn" {
+  description = "Secrets Manager ARN for Airflow Celery result backend"
+  type        = string
+}
