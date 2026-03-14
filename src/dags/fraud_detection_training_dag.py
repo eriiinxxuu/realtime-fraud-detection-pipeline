@@ -54,7 +54,7 @@ with DAG(
     task_id = 'validate_environment',
     bash_command = '''
     echo "Validating Environment..."
-    test -f /opt/airflow/dags/dags/config.yaml &&
+    test -f /opt/airflow/dags/dags/src/config.yaml &&
     echo "Environment is valid!" 
     '''
     )
