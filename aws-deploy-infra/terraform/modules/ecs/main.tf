@@ -451,8 +451,8 @@ resource "aws_ecs_task_definition" "airflow_worker" {
   family                   = "${var.project_name}-airflow-worker"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 1024
-  memory                   = 2048
+  cpu                      = 4096
+  memory                   = 8192
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
 
