@@ -187,6 +187,22 @@ resource "aws_service_discovery_service" "airflow_apiserver" {
   }
 }
 
+resource "aws_service_discovery_service" "mlflow_server" {
+  name         = "mlflow-server"
+  namespace_id = aws_service_discovery_private_dns_namespace.main.id
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+}
+
 # ============================================================
 # SERVICE: airflow-apiserver
 # ============================================================
@@ -641,19 +657,19 @@ resource "aws_ecs_service" "mlflow_server" {
     security_groups = [var.ecs_sg_id]
   }
 
-  service_connect_configuration {
-    enabled   = true
-    namespace = aws_service_discovery_private_dns_namespace.main.arn
+  # service_connect_configuration {
+  #   enabled   = true
+  #   namespace = aws_service_discovery_private_dns_namespace.main.arn
 
-    service {
-      port_name      = "mlflow"
-      discovery_name = "mlflow-server"
-      client_alias {
-        port     = 5500
-        dns_name = "mlflow-server"
-      }
-    }
-  }
+  #   service {
+  #     port_name      = "mlflow"
+  #     discovery_name = "mlflow-server"
+  #     client_alias {
+  #       port     = 5500
+  #       dns_name = "mlflow-server"
+  #     }
+  #   }
+  # }
 
   deployment_circuit_breaker {
     enable   = true
