@@ -40,14 +40,23 @@ with DAG(
     tags=['fraud', 'ML']
 ) as dag:
     
+    # validate_env = BashOperator(
+    #     task_id = 'validate_environment',
+    #     bash_command = '''
+    #     echo "Validating Environment..."
+    #     test -f /app/config.yaml &&
+    #     # test -f /app/.env &&
+    #     echo "Environment is valid!" 
+    #     '''
+    # )
+
     validate_env = BashOperator(
-        task_id = 'validate_environment',
-        bash_command = '''
-        echo "Validating Environment..."
-        test -f /app/config.yaml &&
-        # test -f /app/.env &&
-        echo "Environment is valid!" 
-        '''
+    task_id = 'validate_environment',
+    bash_command = '''
+    echo "Validating Environment..."
+    test -f /opt/airflow/dags/dags/config.yaml &&
+    echo "Environment is valid!" 
+    '''
     )
 
 
