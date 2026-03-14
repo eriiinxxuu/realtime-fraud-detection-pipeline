@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 class FraudDetectionTraining:
-    def __init__(self, config_path='/opt/airflow/dags/config.yaml'):
+    def __init__(self, config_path='/opt/airflow/dags/dags/src/config.yaml'):
         os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
         os.environ['GIT_PYTHON_GIT_EXECUTABLE'] = '/usr/bin/git'
 

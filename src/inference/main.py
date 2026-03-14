@@ -68,7 +68,7 @@ class FraudDetectionInference:
         "high_risk_mcc",
         ]
 
-    def __init__(self, config_path='/app/config.yaml'):
+    def __init__(self, config_path='/opt/airflow/dags/dags/src/config.yaml'):
         load_dotenv(dotenv_path='/app/.env')
         self.config = self._load_config(config_path)
         self.spark = self._init_spark_session()

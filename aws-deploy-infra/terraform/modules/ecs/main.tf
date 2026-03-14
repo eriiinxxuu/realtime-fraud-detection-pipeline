@@ -80,6 +80,8 @@ locals {
     { name = "AWS_DEFAULT_REGION",                         value = var.aws_region },
     { name = "RDS_HOST", value = "fraud-detection-postgres.cbu00k8auquu.ap-southeast-2.rds.amazonaws.com" },
     { name = "AIRFLOW__CORE__DAGS_FOLDER", value = "/opt/airflow/dags/dags/src/dags"  },
+    { name = "AIRFLOW__CELERY__POOL", value = "gevent" }, 
+    { name = "AIRFLOW__CELERY__WORKER_CONCURRENCY", value = "4" },
   ]
 
   airflow_secrets = [
@@ -425,8 +427,6 @@ resource "aws_ecs_task_definition" "airflow_worker" {
 
       environment = concat(local.airflow_environment, [
         { name = "DUMB_INIT_SETSID", value = "0" },
-        { name = "AIRFLOW__CELERY__WORKER_CONCURRENCY", value = "4" },
-        { name = "AIRFLOW__CELERY__POOL", value = "solo" },
       ])
       secrets = local.airflow_secrets
 
