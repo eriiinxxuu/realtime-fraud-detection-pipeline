@@ -34,6 +34,12 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
+          
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to ECR
         id: login-ecr
@@ -45,6 +51,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
+          ${{ matrix.service.name == 'airflow' && '--platform linux/arm64' || '' }} \
             -f ${{ matrix.service.dockerfile }} \
             -t $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:$IMAGE_TAG \
             -t $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:latest \

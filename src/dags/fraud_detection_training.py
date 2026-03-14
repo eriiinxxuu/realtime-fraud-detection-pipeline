@@ -264,7 +264,7 @@ class FraudDetectionTraining:
             logger.info('Starting model training process')
             
             # read raw data from Kafka
-            df = self.read_from_kafka()
+            df = self.read_from_kafka(max_messages=150000)
 
              # start feature engineering from the raw data
             data = self.create_feature(df)
@@ -313,7 +313,7 @@ class FraudDetectionTraining:
                     # num_leaves=self.config['model']['params']['num_leaves'],              
                     # learning_rate=self.config['model']['params']['learning_rate'],           
                     
-                    # scale_pos_weight=scale,
+                    scale_pos_weight=scale,
                     
                     # min_child_samples=self.config['model']['params']['min_child_samples'],     
                     # reg_alpha=self.config['model']['params']['reg_alpha'],              
@@ -332,7 +332,7 @@ class FraudDetectionTraining:
 
                 pipeline = ImbPipeline(steps=[
                     ('preprocessor', preprocessor),
-                    ('smote', SMOTE(random_state=self.config['model'].get('seed', 42))),
+                    # ('smote', SMOTE(random_state=self.config['model'].get('seed', 42))),
                     ('classifier', lgbm)
                 ], memory='./cache')
 
@@ -351,9 +351,9 @@ class FraudDetectionTraining:
                 searcher = RandomizedSearchCV(
                     pipeline,
                     param_dist,
-                    n_iter=20,
+                    n_iter=10,
                     scoring=make_scorer(fbeta_score, beta=2, zero_division=0),
-                    cv=TimeSeriesSplit(n_splits=3), 
+                    cv=TimeSeriesSplit(n_splits=2), 
                     random_state=42,
                     n_jobs=-1,
                     verbose=2
