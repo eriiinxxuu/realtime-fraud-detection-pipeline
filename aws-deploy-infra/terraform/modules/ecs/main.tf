@@ -79,7 +79,7 @@ locals {
     { name = "MLFLOW_TRACKING_URI",                        value = "http://mlflow-server.${var.project_name}.local:5500" },
     { name = "AWS_DEFAULT_REGION",                         value = var.aws_region },
     { name = "RDS_HOST", value = "fraud-detection-postgres.cbu00k8auquu.ap-southeast-2.rds.amazonaws.com" },
-    { name = "AIRFLOW__CORE__DAGS_FOLDER", value = "/opt/airflow/dags/dags" },
+    { name = "AIRFLOW__CORE__DAGS_FOLDER", value = "/opt/airflow/dags/dags/src/dags"  },
   ]
 
   airflow_secrets = [
