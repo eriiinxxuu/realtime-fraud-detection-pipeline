@@ -569,13 +569,9 @@ resource "aws_ecs_task_definition" "mlflow_server" {
     ]
 
     command = [
-      "mlflow", "server",
-      "--port", "5500",
-      "--host", "0.0.0.0",
-      "--backend-store-uri", "$(MLFLOW_DB_URL)",
-      "--default-artifact-root", "s3://${var.mlflow_bucket_name}/",
-      "--allowed-hosts", "*"
-    ]
+  "sh", "-c",
+  "mlflow server --port 5500 --host 0.0.0.0 --backend-store-uri $MLFLOW_DB_URL --default-artifact-root s3://${var.mlflow_bucket_name}/ --allowed-hosts *"
+  ] 
 
     logConfiguration = {
       logDriver = "awslogs"
