@@ -113,6 +113,10 @@ locals {
       name      = "MLFLOW_DB_PASSWORD"
       valueFrom = var.mlflow_db_password_secret_arn
     },
+      {
+      name      = "AIRFLOW__API__SECRET_KEY"
+      valueFrom = var.airflow_jwt_secret_arn
+  },
   ]
 
   # git-sync sidecar — shared across all Airflow task definitions
