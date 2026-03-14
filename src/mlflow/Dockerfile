@@ -11,4 +11,4 @@ COPY mlflow/ .
 
 EXPOSE 5500
 
-CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5500"]
+CMD ["sh", "-c", "mlflow server --host 0.0.0.0 --port 5500 --backend-store-uri $MLFLOW_DB_URL --default-artifact-root s3://$MLFLOW_ARTIFACT_BUCKET/ --allowed-hosts *"]

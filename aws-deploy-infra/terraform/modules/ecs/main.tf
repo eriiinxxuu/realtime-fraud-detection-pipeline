@@ -564,17 +564,18 @@ resource "aws_ecs_task_definition" "mlflow_server" {
     }]
 
     environment = [
-      { name = "AWS_DEFAULT_REGION", value = var.aws_region }
+      { name = "AWS_DEFAULT_REGION", value = var.aws_region },
+      { name = "MLFLOW_ARTIFACT_BUCKET", value = var.mlflow_bucket_name }
     ]
 
     secrets = [
       { name = "MLFLOW_DB_URL", valueFrom = var.mlflow_db_url_secret_arn }
     ]
 
-    command = [
-    "sh", "-c",
-    "mlflow server --port 5500 --host 0.0.0.0 --backend-store-uri $MLFLOW_DB_URL --default-artifact-root s3://${var.mlflow_bucket_name}/ --allowed-hosts *"
-    ] 
+    # command = [
+    # "sh", "-c",
+    # "mlflow server --port 5500 --host 0.0.0.0 --backend-store-uri $MLFLOW_DB_URL --default-artifact-root s3://${var.mlflow_bucket_name}/ --allowed-hosts *"
+    # ] 
 
     logConfiguration = {
       logDriver = "awslogs"
