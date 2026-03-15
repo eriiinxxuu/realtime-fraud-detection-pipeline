@@ -46,6 +46,14 @@ RUN wget -O /spark/jars/spark-token-provider-kafka-0-10_2.12-${SPARK_VERSION}.ja
 RUN wget -O /spark/jars/commons-pool2-2.12.0.jar \
     https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.12.0/commons-pool2-2.12.0.jar
 
+
+# S3 JARS
+RUN wget -O /spark/jars/hadoop-aws-3.3.4.jar \
+    https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar
+
+RUN wget -O /spark/jars/aws-java-sdk-bundle-1.12.262.jar \
+    https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar
+        
 # Create virtual environment and working directory
 RUN mkdir /app && python -m venv /opt/venv
 WORKDIR /app
