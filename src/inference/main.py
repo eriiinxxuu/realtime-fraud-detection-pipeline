@@ -82,7 +82,14 @@ class FraudDetectionInference:
     def _load_model(self):
         mlflow.set_tracking_uri(self.config['mlflow']['tracking_url'])
         model = mlflow.sklearn.load_model("models:/fraud_detection_model/latest")
-        logger.info('Model loaded from MLflow')
+        
+        client = mlflow.tracking.MlflowClient()
+        latest_version = client.get_latest_versions("fraud_detection_model")[0]
+        run_id = latest_version.run_id
+        threshold = client.get_metric_history(run_id, "threshold")[-1].value
+        
+        self.threshold = threshold
+        logger.info('Model loaded from MLflow, threshold: %.4f', self.threshold)
         return model
 
 
@@ -248,9 +255,6 @@ class FraudDetectionInference:
 
         broadcast_model = self.broadcast_model
         feature_cols = self.FEATURE_COLUMNS
-
-         #lastest model
-        threshold = 0.7
        
 
         @pandas_udf(DoubleType())
@@ -263,7 +267,7 @@ class FraudDetectionInference:
 
         scored_df = (
             df.withColumn("fraud_score", predict_proba_udf(*[col(c) for c in feature_cols]))
-            .withColumn("fraud_pred", when(col("fraud_score") >= lit(threshold), lit(1)).otherwise(lit(0)),
+            .withColumn("fraud_pred", when(col("fraud_score") >= lit(self.threshold), lit(1)).otherwise(lit(0)),
             )
             .withColumn("year",  year(col("event_time"))) \
             .withColumn("month", month(col("event_time"))) \
@@ -303,9 +307,8 @@ class FraudDetectionInference:
         output_path = f"s3a://{os.getenv('INFERENCE_RESULTS_BUCKET')}/predictions"
         query = (
             fraud_prediction
-            .filter(col("fraud_pred") == 1)
             .writeStream
-            .format("parquet")                         # 比 json 省 60-70% 空间
+            .format("parquet")                        
             .option("path", output_path)
             .option("checkpointLocation", "checkpoints/checkpoint")
             .partitionBy("year", "month", "day", "currency")
