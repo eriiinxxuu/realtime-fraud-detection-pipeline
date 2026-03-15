@@ -50,11 +50,10 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build \
-          ${{ matrix.service.name == 'airflow' && '--platform linux/arm64' || '' }} \
+          docker buildx build \
+            --platform linux/arm64 \
             -f ${{ matrix.service.dockerfile }} \
             -t $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:$IMAGE_TAG \
             -t $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:latest \
+            --push \
             ./src
-          docker push $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:$IMAGE_TAG
-          docker push $ECR_REGISTRY/fraud-detection/${{ matrix.service.name }}:latest

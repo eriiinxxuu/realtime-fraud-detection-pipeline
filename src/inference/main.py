@@ -11,7 +11,7 @@ from pyspark.sql.types import (
 from pyspark.sql.functions import (
     col, lit, array_contains,from_json,
     hour, dayofweek, when, floor, to_timestamp, pandas_udf,
-    struct, to_json
+    struct, to_json, year, month, dayofmonth
 )
 import yaml
 import pandas as pd
@@ -263,14 +263,18 @@ class FraudDetectionInference:
 
         scored_df = (
             df.withColumn("fraud_score", predict_proba_udf(*[col(c) for c in feature_cols]))
-            .withColumn("fraud_pred", when(col("fraud_score") >= lit(threshold), lit(1)).otherwise(lit(0)))
+            .withColumn("fraud_pred", when(col("fraud_score") >= lit(threshold), lit(1)).otherwise(lit(0)),
+            )
+            .withColumn("year",  year(col("event_time"))) \
+            .withColumn("month", month(col("event_time"))) \
+            .withColumn("day",   dayofmonth(col("event_time")))
         )
 
         fraud_prediction = scored_df.filter(col('fraud_pred') == 1)
-        output_df = fraud_prediction.selectExpr(
-        "CAST(transaction_id AS STRING) AS key",
-        "to_json(struct(*)) AS value"
-        )
+        # output_df = fraud_prediction.selectExpr(
+        # "CAST(transaction_id AS STRING) AS key",
+        # "to_json(struct(*)) AS value"
+        # )
 
     #     query = (
     #     output_df.writeStream
@@ -285,25 +289,38 @@ class FraudDetectionInference:
     #     .start()
     # )
     #     query.awaitTermination()
-        write_options = {
-        'kafka.bootstrap.servers': self.bootstrap_servers,
-        'topic': 'fraud_predictions_output',
-        'kafka.security.protocol': self.security_protocol,
-        'checkpointLocation': 'checkpoints/checkpoint',
-    }
+    #     write_options = {
+    #     'kafka.bootstrap.servers': self.bootstrap_servers,
+    #     'topic': 'fraud_predictions_output',
+    #     'kafka.security.protocol': self.security_protocol,
+    #     'checkpointLocation': 'checkpoints/checkpoint',
+    # }
 
-        if self.sasl_jaa_config:
-            write_options['kafka.sasl.mechanism'] = self.sasl_mechanism
-            write_options['kafka.sasl.jaas.config'] = self.sasl_jaa_config
+        # if self.sasl_jaa_config:
+        #     write_options['kafka.sasl.mechanism'] = self.sasl_mechanism
+        #     write_options['kafka.sasl.jaas.config'] = self.sasl_jaa_config
 
-        query = output_df.writeStream.format('kafka')
-        for key, value in write_options.items():
-            query = query.option(key, value)
-        query = query.outputMode('append').start()
+        output_path = f"s3a://{os.getenv('INFERENCE_RESULTS_BUCKET')}/predictions"
+        query = (
+            fraud_prediction
+            .filter(col("fraud_pred") == 1)
+            .writeStream
+            .format("parquet")                         # 比 json 省 60-70% 空间
+            .option("path", output_path)
+            .option("checkpointLocation", "checkpoints/checkpoint")
+            .partitionBy("year", "month", "day", "currency")
+            .outputMode("append")
+            .start()
+        )
+
+        # query = output_df.writeStream.format('kafka')
+        # for key, value in write_options.items():
+        #     query = query.option(key, value)
+        # query = query.outputMode('append').start()
         query.awaitTermination()
 
 
 
 if __name__ == "__main__":
-    inference = FraudDetectionInference('/app/config.yaml')
+    inference = FraudDetectionInference('/opt/airflow/dags/dags/src/config.yaml')
     inference.run_inference()
