@@ -805,7 +805,6 @@ resource "aws_ecs_task_definition" "inference" {
       { name = "MLFLOW_TRACKING_URI",     value = "http://mlflow-server.${var.project_name}.local:5500" },
       { name = "KAFKA_SECURITY_PROTOCOL", value = "PLAINTEXT" },
       { name = "KAFKA_SASL_MECHANISM",    value = "" },
-      { name = "MLFLOW_S3_ENDPOINT_URL",  value = "" },
       { name = "INFERENCE_RESULTS_BUCKET",  value = var.inference_results_bucket_name },
     ]
 
