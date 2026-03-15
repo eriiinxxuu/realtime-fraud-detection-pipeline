@@ -214,10 +214,15 @@ resource "aws_ecs_task_definition" "airflow_apiserver" {
   memory                   = 1024
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   volume {
     name = local.dags_volume_name
   }
+
 
   container_definitions = jsonencode([
     {
@@ -300,6 +305,10 @@ resource "aws_ecs_task_definition" "airflow_scheduler" {
   memory                   = 1024
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   volume {
     name = local.dags_volume_name
@@ -381,6 +390,10 @@ resource "aws_ecs_task_definition" "airflow_dag_processor" {
   memory                   = 1024
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   volume {
     name = local.dags_volume_name
@@ -535,6 +548,10 @@ resource "aws_ecs_task_definition" "airflow_triggerer" {
   memory                   = 1024
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   volume {
     name = local.dags_volume_name
@@ -609,6 +626,10 @@ resource "aws_ecs_task_definition" "mlflow_server" {
   memory                   = 2048
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   container_definitions = jsonencode([{
     name      = "mlflow-server"
@@ -702,6 +723,10 @@ resource "aws_ecs_task_definition" "producer" {
   memory                   = 1024
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   container_definitions = jsonencode([{
     name      = "producer"
@@ -765,6 +790,10 @@ resource "aws_ecs_task_definition" "inference" {
   memory                   = 8192
   execution_role_arn       = var.task_execution_role_arn
   task_role_arn            = var.task_role_arn
+  runtime_platform {
+  operating_system_family = "LINUX"
+  cpu_architecture        = "ARM64"
+}
 
   container_definitions = jsonencode([{
     name      = "inference"
@@ -777,6 +806,7 @@ resource "aws_ecs_task_definition" "inference" {
       { name = "KAFKA_SECURITY_PROTOCOL", value = "PLAINTEXT" },
       { name = "KAFKA_SASL_MECHANISM",    value = "" },
       { name = "MLFLOW_S3_ENDPOINT_URL",  value = "" },
+      { name = "INFERENCE_RESULTS_BUCKET",  value = var.inference_results_bucket_name },
     ]
 
     secrets = [

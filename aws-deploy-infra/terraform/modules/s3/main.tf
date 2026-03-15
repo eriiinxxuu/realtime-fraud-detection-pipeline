@@ -76,3 +76,68 @@ resource "aws_s3_bucket_lifecycle_configuration" "mlflow_artifacts" {
     }
   }
 }
+
+# ============================================================
+# S3 Bucket — Fraud Detection Inference Results
+#
+# Stores fraud prediction outputs from the Spark Streaming
+# inference service (replaces Kafka output topic).
+#
+# Path convention:
+#   s3://<project>-inference-results/predictions/YYYY/MM/DD/
+# ============================================================
+
+resource "aws_s3_bucket" "inference_results" {
+  bucket        = "${var.project_name}-inference-results"
+  force_destroy = false
+
+  tags = { Name = "${var.project_name}-inference-results" }
+}
+
+resource "aws_s3_bucket_versioning" "inference_results" {
+  bucket = aws_s3_bucket.inference_results.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "inference_results" {
+  bucket = aws_s3_bucket.inference_results.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "inference_results" {
+  bucket                  = aws_s3_bucket.inference_results.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# 保留 90 天完整记录，之后转 Infrequent Access，365 天后归档
+resource "aws_s3_bucket_lifecycle_configuration" "inference_results" {
+  bucket = aws_s3_bucket.inference_results.id
+
+  rule {
+    id     = "archive-old-predictions"
+    status = "Enabled"
+
+    filter { prefix = "predictions/" }
+
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 365
+      storage_class = "GLACIER"
+    }
+  }
+}

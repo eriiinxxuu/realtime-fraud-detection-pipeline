@@ -107,3 +107,7 @@ variable "airflow_celery_result_backend_secret_arn" {
   description = "Secrets Manager ARN for Airflow Celery result backend"
   type        = string
 }
+variable "inference_results_bucket_name" {
+  description = "S3 bucket name for inference result output"
+  type        = string
+}
