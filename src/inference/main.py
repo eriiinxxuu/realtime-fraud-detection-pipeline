@@ -126,7 +126,9 @@ class FraudDetectionInference:
     def read_from_kafka(self):
         logger.info(f"Reading data from Kafka {self.config['kafka']['topic']}")
         kafka_bootstrap_server = os.getenv('KAFKA_BOOTSTRAP_SERVERS')
+        logger.info('KAFKA_BOOTSTRAP_SERVERS = [%s]', kafka_bootstrap_server)
         kafka_topic = os.getenv('KAFKA_TOPIC')
+        logger.info('KAFKA_TOPIC = [%s]', kafka_topic) 
         kafka_security_protocol = self.config['kafka']['security_protocol']
         kafka_sasl_mechanism = self.config['kafka']['sasl_mechanism']
         kafka_username = os.getenv("KAFKA_USERNAME")
