@@ -12,6 +12,27 @@
 ## 📚 Introduction
 This project demonstrates an end-to-end, production-ready real-time fraud detection pipeline. This system features real-time stream processing using **AWS MSK** and **PySpark**, with automated workflows orchestrated by **Apache Airflow deployed on AWS ECS**. The entire stack is managed via a robust **CI/CD pipeline (GitHub Actions)** and defined as code (**IaC via Terraform**), ensuring seamless automation, high availability, and elastic scalability from infrastructure to deployment.
 
+## Project Structure
+```text
+├── aws-deploy-infra/
+│   └── terraform/              # Terraform IaC — VPC, ECS, RDS, MSK, S3, IAM
+├── src/                        
+│   ├── airflow/                # Airflow Dockerfile + entrypoint
+│   ├── inference/              # Inference Dockerfile + Spark Structured Streaming inference service
+│   ├── producer/               # producer Dockerfile + Kafka transaction producer (fake data)
+│   ├── mlflow/                 # mlflow Dockerfile + MLflow server Dockerfile
+│   └── dags/                   # DAGs + LightGBM training script
+├── aws_deploy/                 # AWS deployment validation & UI screenshots
+├── local_deploy/               # Local testing validation & screenshots
+├── architecture/               # System architecture diagrams and technical deep-dives
+│  
+├── .github/
+│   └── workflows/
+│       ├── deploy-images.yml   # Build & push Docker images to ECR
+│       └── terraform.yml       # Terraform plan & apply on infra changes
+├── config.yaml                 # Shared config (Kafka, MLflow, Spark settings)
+└── README.md
+```
 
 ## 🏗️ System Architecture
 ![System Architecture](https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline/blob/main/architecture/architecture-readme.png)
@@ -29,3 +50,4 @@ This project demonstrates an end-to-end, production-ready real-time fraud detect
 - **High-Throughput Stream Processing**: Leveraged PySpark & Apache Arrow (***pandas_udf***) for batch-vectorized predictions on **MSK** streams, bypassing Python serialization bottlenecks. Sunk real-time inference results to **S3 (Parquet)** partitioned by date for downstream **Athena** analytics.
 - **End-to-End DataOps & MLOps**: mplemented dual-workflow **GitHub Actions** for seamless Infrastructure-as-Code (**Terraform**) deployment and container lifecycle management. Integrated **MLflow** as a centralized model registry to seamlessly bridge batch training outputs with the real-time PySpark inference engine.
 - **Zero-Trust Networking**: Provisioned isolated private subnets via Terraform, utilizing Security Group chaining and VPC Endpoints (PrivateLink) to secure financial data streams and minimize NAT egress costs.
+
