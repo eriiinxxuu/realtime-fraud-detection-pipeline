@@ -7,6 +7,7 @@
 ![MLflow](https://img.shields.io/badge/MLflow-Experiment_Tracking-0194E2.svg)
 ![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-2088FF.svg)
 ![Terraform](https://img.shields.io/badge/Terraform-Infrastructure_as_Code-623CE4.svg)
+![Security](https://img.shields.io/badge/Network-Zero_Trust_Architecture-green.svg)
 
 ## 📚 Introduction
 This project demonstrates an end-to-end, production-ready real-time fraud detection pipeline. This system features real-time stream processing using **AWS MSK** and **PySpark**, with automated workflows orchestrated by **Apache Airflow deployed on AWS ECS**. The entire stack is managed via a robust **CI/CD pipeline (GitHub Actions)** and defined as code (**IaC via Terraform**), ensuring seamless automation, high availability, and elastic scalability from infrastructure to deployment.
@@ -15,3 +16,16 @@ This project demonstrates an end-to-end, production-ready real-time fraud detect
 ## 🏗️ System Architecture
 ![System Architecture](https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline/blob/main/architecture/architecture-readme.png)
 
+## 🔒 Network Topology & Security
+* **Isolation:** All compute (ECS) and data (MSK, RDS) resources are hosted in **Isolated Private Subnets**.
+* **Private Connectivity:** Utilized **AWS PrivateLink (Interface Endpoints)** and **Gateway Endpoints** to ensure that data transfer to S3, ECR, and Secrets Manager never leaves the AWS network.
+* **Egress Control:** A centralized **NAT Gateway** handles strictly necessary outbound traffic, while security groups enforce a **Zero-Trust** policy between microservices.
+
+![Network Architecture](https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline/blob/main/architecture/network.png)
+
+## 🚀 Key Engineering Highlights
+
+- **Robust ECS Microservices Ecosystem**: Orchestrated 8 custom-built containerized services on AWS ECS (ARM64), including a fully decoupled Airflow stack (API, Scheduler, DAG Processor, Triggerer, Worker). Automated complex daily pipelines for MSK data extraction (150k batch) and feature engineering.
+- **High-Throughput Stream Processing**: Leveraged PySpark & Apache Arrow (***pandas_udf***) for batch-vectorized predictions on **MSK** streams, bypassing Python serialization bottlenecks. Sunk real-time inference results to **S3 (Parquet)** partitioned by date for downstream **Athena** analytics.
+- **End-to-End DataOps & MLOps**: mplemented dual-workflow **GitHub Actions** for seamless Infrastructure-as-Code (**Terraform**) deployment and container lifecycle management. Integrated **MLflow** as a centralized model registry to seamlessly bridge batch training outputs with the real-time PySpark inference engine.
+- **Zero-Trust Networking**: Provisioned isolated private subnets via Terraform, utilizing Security Group chaining and VPC Endpoints (PrivateLink) to secure financial data streams and minimize NAT egress costs.
