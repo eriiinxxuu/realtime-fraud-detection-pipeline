@@ -3,7 +3,7 @@
 The pipeline consists of two decoupled workflows sharing a single 
 MLflow model registry as the contract between training and inference.
 
-![architecture](https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline/blob/main/architecture/architecture_detail.pdf)
+![Detailed Architecture Diagram](https://github.com/eriiinxxuu/realtime-fraud-detection-pipeline/blob/main/architecture/architecture_detail.pdf)
 
 
 ### Training Pipeline
@@ -13,7 +13,7 @@ MLflow model registry as the contract between training and inference.
 **Steps:**
 
 1. **Data ingestion** — Airflow worker reads 150,000 historical 
-   transaction messages from MSK Kafka using `confluent_kafka` consumer.
+   transaction messages from MSK Kafka.
 
 2. **Feature engineering** — Flattens nested `user_profile_summary`, 
    expands `risk_signals` array into 10 binary `signal_*` columns, 
