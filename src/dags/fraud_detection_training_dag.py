@@ -82,7 +82,7 @@ with DAG(
 
     Daily training of fraud detection model using:
     - Transaction data from Kafka
-    - XGBoost classifier with precision optimisation
+    - LightGBM classifier with precision optimisation
     - MLFlow for experimental tracking
 
     """
