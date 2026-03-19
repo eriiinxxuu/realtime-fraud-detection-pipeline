@@ -48,6 +48,28 @@ This project demonstrates an end-to-end, production-ready real-time fraud detect
 
 - **Robust ECS Microservices Ecosystem**: Orchestrated 8 custom-built containerized services on AWS ECS (ARM64), including a fully decoupled Airflow stack (API, Scheduler, DAG Processor, Triggerer, Worker). Automated complex daily pipelines for MSK data extraction (150k batch) and feature engineering.
 - **High-Throughput Stream Processing**: Leveraged PySpark & Apache Arrow (***pandas_udf***) for batch-vectorized predictions on **MSK** streams, bypassing Python serialization bottlenecks. Sunk real-time inference results to **S3 (Parquet)** partitioned by date for downstream **Athena** analytics.
-- **End-to-End DataOps & MLOps**: mplemented dual-workflow **GitHub Actions** for seamless Infrastructure-as-Code (**Terraform**) deployment and container lifecycle management. Integrated **MLflow** as a centralized model registry to seamlessly bridge batch training outputs with the real-time PySpark inference engine.
+- **End-to-End DataOps & MLOps**: Implemented dual-workflow **GitHub Actions** for seamless Infrastructure-as-Code (**Terraform**) deployment and container lifecycle management. Integrated **MLflow** as a centralized model registry to seamlessly bridge batch training outputs with the real-time PySpark inference engine.
 - **Zero-Trust Networking**: Provisioned isolated private subnets via Terraform, utilizing Security Group chaining and VPC Endpoints (PrivateLink) to secure financial data streams and minimize NAT egress costs.
 
+## 🛠️ Quick Start & Deployment
+
+The infrastructure and application lifecycle are fully automated.
+
+1. **Infrastructure (Terraform):** Navigate to `aws-deploy-infra/terraform/` and apply the configurations to provision the VPC, MSK, ECS cluster, and RDS.
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply -auto-approve
+   
+2. **CI/CD Pipeline:** Pushing to the `main` branch automatically triggers GitHub Actions to build ARM64 Docker images, push them to Amazon ECR, and update the ECS services.
+
+3. **Validation:** Check the `aws_deploy/` and `local_deploy/` folders for deployment screenshots, including Airflow DAG runs and MSK streaming logs.
+
+## 📖 Detailed Documentation
+
+For deep-dives into specific components and engineering decisions, please refer to the detailed documentation:
+
+* [**System Architecture & Data Flow**](./architecture/system-architecture.md)
+* [**Network Security & VPC Endpoints**](./architecture/network-security.md)
+* [**PySpark Vectorization & Inference Optimization**](./architecture/inference.md)
+* [**Airflow ECS Orchestration & Microservices**](./architecture/airflow.md)
