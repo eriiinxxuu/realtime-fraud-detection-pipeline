@@ -10,7 +10,7 @@
 ![Security](https://img.shields.io/badge/Network-Zero_Trust_Architecture-green.svg)
 
 ## 📚 Introduction
-This project demonstrates an end-to-end, production-ready real-time fraud detection pipeline. This system features real-time stream processing using **AWS MSK** and **PySpark**, with automated workflows orchestrated by **Apache Airflow deployed on AWS ECS**. The entire stack is managed via a robust **CI/CD pipeline (GitHub Actions)** and defined as code (**IaC via Terraform**), ensuring seamless automation, high availability, and elastic scalability from infrastructure to deployment.
+This project demonstrates an end-to-end, production-ready real-time fraud detection pipeline. This system features continuous stream processing using **AWS MSK** and **PySpark**, with automated workflows orchestrated by **Apache Airflow**. To guarantee zero-downtime operation, the core platform is deployed as always-on **AWS ECS Services on Fargate**, providing 24/7 high availability and automatic self-healing. The entire stack is managed via a robust CI/CD pipeline (GitHub Actions) and defined as code (IaC via Terraform), ensuring seamless automation and elastic scalability from infrastructure to deployment.
 
 ## Project Structure
 ```text
